@@ -1,5 +1,7 @@
 ﻿namespace Raytracing.Rendering
 {
+	using static System.Math;
+
 	using Math;
 
 	using SixLabors.ImageSharp;
@@ -7,14 +9,13 @@
 
 	internal class Camera
 	{
-		private Random random = new Random();
+		private readonly Random random = new();
 
-		// Image properties
 		public int Width;
 		public int Height;
 		public int SamplesPPixel;
-
-		// Camera properties
+		public int MaxDepth;
+		public double Gamma;
 
 		private Vec3 center;
 		private Vec3 pixel00Location;
@@ -40,9 +41,10 @@
 					for (int i = 0; i < SamplesPPixel; i++)
 					{
 						Ray ray = GetRay(x, y);
-						sample += RayColor(ray, world);
+						sample += RayColor(ray, world, MaxDepth);
 					}
 					sample *= pixelSampleScale;
+					sample = LinearToGamma(sample);
 					image[x, y] = sample;
 				}
 			}
@@ -75,21 +77,26 @@
 			pixel00Location = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
 		}
 
-		private Vec3 RayColor(in Ray ray, in IHittable world)
+		private Vec3 RayColor(in Ray ray, in IHittable world, int depth)
 		{
+			if (depth <= 0) return new Vec3();
+
 			Vec3 unitDirection = ray.Direction.Unit();
 
 			HitRecord rec = new();
-			if (world.Hit(ray, ref rec, new Interval(0, double.PositiveInfinity)))
+			if (world.Hit(ray, ref rec, new Interval(0.001, double.PositiveInfinity)))
 			{
-				return 0.5 * (rec.Normal + new Vec3(1, 1, 1));
+				Vec3 direction = rec.Normal + Vec3.RandomUnit();
+				return Gamma * RayColor(new Ray(rec.Point, direction), world, depth - 1);
 			}
 
 			// Lerp value based on ray direction y component
 			double a = 0.5 * (unitDirection.Y + 1.0);
 
 			// Lerp color
-			Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.5, 0.7, 1.0);
+			// TODO: Change back sky gradient
+			//Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.5, 0.7, 1.0);
+			Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.4, 0.0, 0.4);
 
 			return colorVec;
 		}
@@ -108,6 +115,16 @@
 		private Vec3 SampleSquare()
 		{
 			return new Vec3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, 0);
+		}
+
+		private static double LinearToGamma(double linearComponent)
+		{
+			if (linearComponent > 0) return Sqrt(linearComponent);
+			else return 0;
+		}
+		private Vec3 LinearToGamma(Vec3 v)
+		{
+			return new Vec3(LinearToGamma(v.X), LinearToGamma(v.Y), LinearToGamma(v.Z));
 		}
 	}
 }

@@ -10,6 +10,7 @@
 		static void Main(string[] args)
 		{
 			_ = args;
+			Console.WriteLine();
 
 			HittableList world = new();
 			world.Hittables.Add(new Sphere(new Vec3(0, 0, -1), 0.5));
@@ -20,6 +21,8 @@
 				Width = 512,
 				Height = 512,
 				SamplesPPixel = 100,
+				MaxDepth = 50,
+				Gamma = 0.6,
 			};
 
 			cam.Render(world);

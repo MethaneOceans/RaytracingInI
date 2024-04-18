@@ -7,6 +7,8 @@
 
 	internal struct Vec3(double x, double y, double z)
     {
+        static readonly Random random = new();
+
         public double X = x;
         public double Y = y;
         public double Z = z;
@@ -74,6 +76,36 @@
         public static implicit operator Rgba32(Vec3 v)
         {
             return new Rgba32(v);
+        }
+
+        public static Vec3 Random()
+        {
+            return new Vec3(random.NextDouble(), random.NextDouble(), random.NextDouble());
+        }
+        public static Vec3 Random(double min, double max)
+        {
+            double x = min + (max - min) * random.NextDouble();
+            double y = min + (max - min) * random.NextDouble();
+            double z = min + (max - min) * random.NextDouble();
+            return new Vec3(x, y, z);
+        }
+        public static Vec3 RandomInUnitSphere()
+        {
+            while (true)
+            {
+                Vec3 v = Random(-1, 1);
+                if (v.LengthSquared() < 1) return v;   
+            }
+        }
+        public static Vec3 RandomUnit()
+        {
+            return RandomInUnitSphere().Unit();
+        }
+        public static Vec3 RandomOnHemisphere(in Vec3 normal)
+        {
+            Vec3 onUnitSphere = RandomUnit();
+            if (Dot(onUnitSphere, normal) > 0) return onUnitSphere;
+            else return -onUnitSphere;
         }
     }
 }
