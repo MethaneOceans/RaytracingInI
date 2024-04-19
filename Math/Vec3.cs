@@ -130,7 +130,7 @@
         {
             while (true)
             {
-                Vec3 p = new Vec3(RandomDouble(-1, 1), RandomDouble(-1, 1), 0);
+                Vec3 p = new(RandomDouble(-1, 1), RandomDouble(-1, 1), 0);
                 if (p.LengthSquared() < 1) return p;
 			}
         }
@@ -165,7 +165,7 @@
 		/// Checks if the vectors has a near zero magnitude (componentwise since length calculation takes long)
 		/// </summary>
 		/// <returns></returns>
-		public bool NearZero()
+		public readonly bool NearZero()
 		{
 			double s = 1e-8;
 			return Abs(X) < s && Abs(Y) < s && Abs(Z) < s;

@@ -19,9 +19,9 @@
 		public int MaxDepth;		// Maximum ray bounces
 
 		public double vFOV = 90;					// Vertical FOV
-		public Vec3 LookFrom = new Vec3();			// Point the camera is looking from
-		public Vec3 LookAt = new Vec3(0, 0, -1);	// Point to look at
-		public Vec3 ViewUp = new Vec3(0, 1, 0);     // Camera relative up direction
+		public Vec3 LookFrom = new();			// Point the camera is looking from
+		public Vec3 LookAt = new(0, 0, -1);	// Point to look at
+		public Vec3 ViewUp = new(0, 1, 0);     // Camera relative up direction
 
 		public double DefocusAngle = 0;		// Variation angle of rays through each pixel
 		public double FocusDistance = 10;	// Distance from camera LookFrom to plane of perfect focus
@@ -36,9 +36,9 @@
 		private Vec3 defocusDiskV;
 
 		// Only used for threads
-		Mutex imageMutex = new Mutex();
-		Image<Rgba32>? protectedImage;
-		int pixelsDone = 0;
+		private readonly Mutex imageMutex = new();
+		private Image<Rgba32>? protectedImage;
+		private int pixelsDone = 0;
 
 		private void Initialize()
 		{
@@ -76,13 +76,17 @@
 			defocusDiskV = v * defocusRadius;
 		}
 
-		public void ThreadedRender(in IHittable world)
+		public void ThreadedRender(in IHittable world, int maxThreads = -1)
 		{
 			Initialize();
 
 			protectedImage = new(Width, Height);
 
-			TimerCallback updatePixCount = (_) =>
+			int processorCount = Environment.ProcessorCount;
+			int threadCount = maxThreads < processorCount ? processorCount : maxThreads;
+			ThreadPool.SetMaxThreads(threadCount, threadCount);
+
+			void updatePixCount(object? _)
 			{
 				int pixCount;
 				if (imageMutex.WaitOne(100))
@@ -91,8 +95,8 @@
 					imageMutex.ReleaseMutex();
 					ConsoleManager.WritePercent(pixCount, Width * Height, 0);
 				}
-			};
-			Timer pixelCountUpdate = new Timer(updatePixCount, null, 1000, 1000);
+			}
+			Timer pixelCountUpdate = new(updatePixCount, null, 1000, 1000);
 
 			DateTime start = DateTime.Now;
 
@@ -182,20 +186,18 @@
 			int timestamp = (int)(DateTime.Now - DateTime.UnixEpoch).TotalSeconds;
 			image.SaveAsPng($"Output\\Trace-{timestamp}.png");
 		}
-		private Vec3 RayColor(in Ray ray, in IHittable world, int depth)
+		private static Vec3 RayColor(in Ray ray, in IHittable world, int depth)
 		{
 			if (depth <= 0) return new Vec3();
 
 			HitRecord rec = new();
 			if (world.Hit(ray, ref rec, new Interval(0.001, double.PositiveInfinity)))
 			{
-				Ray scattered;
 				Vec3 attentuation = new();
-				if (rec.Material.Scatter(ray, rec, ref attentuation, out scattered))
+				if (rec.Material.Scatter(ray, rec, ref attentuation, out Ray scattered))
 				{
 					return attentuation * RayColor(scattered, world, depth - 1);
 				}
-				Vec3 direction = Vec3.RandomUnit();
 				return new Vec3();
 			}
 
@@ -236,7 +238,7 @@
 			if (linearComponent > 0) return Sqrt(linearComponent);
 			else return 0;
 		}
-		private Vec3 LinearToGamma(Vec3 v)
+		private static Vec3 LinearToGamma(Vec3 v)
 		{
 			return new Vec3(LinearToGamma(v.X), LinearToGamma(v.Y), LinearToGamma(v.Z));
 		}

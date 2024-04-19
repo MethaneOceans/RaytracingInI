@@ -8,7 +8,7 @@ namespace Raytracing.Math
 {
 	internal static class Utils
 	{
-		private static Random random = new Random();
+		private static readonly Random random = new();
 		public static double RandomDouble()
 		{
 			return random.NextDouble();

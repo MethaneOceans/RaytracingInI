@@ -5,15 +5,16 @@ namespace Raytracing.Rendering.Hittables
 {
     internal class HittableList : IHittable
     {
-        private List<IHittable> Hittables = [];
+        private readonly List<IHittable> Hittables = [];
         public void Add(IHittable hittable)
         {
             Hittables.Add(hittable);
         }
+        public void Clear() => Hittables.Clear();
 
         public bool Hit(in Ray ray, ref HitRecord hitRec, Interval tRange)
         {
-            HitRecord tempRec = new HitRecord();
+            HitRecord tempRec = new();
             bool anyHit = false;
             double closestHit = tRange.Max;
 
