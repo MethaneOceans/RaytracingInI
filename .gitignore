@@ -1,0 +1,4 @@
+
+bin/
+!bin/Debug/net8.0/Output/*
+obj/
