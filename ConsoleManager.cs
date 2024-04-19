@@ -18,7 +18,7 @@ namespace Raytracing
 			// Go to start of console
 			Console.SetCursorPosition(0, 0);
 
-			int progress = (int)((currentLine / (float)totalLines) * barLength) + 1;
+			int progress = (int)((currentLine / (float)totalLines) * barLength);
 
 			string progressBar = new StringBuilder(progress).Insert(0, "#", progress).Insert(progress, "_", barLength - progress).ToString();
 

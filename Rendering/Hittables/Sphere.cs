@@ -4,10 +4,11 @@
     using Raytracing.Rendering;
     using static System.Math;
 
-    internal class Sphere(Vec3 center, double radius) : IHittable
+    internal class Sphere(Vec3 center, double radius, IMaterial material) : IHittable
     {
         private Vec3 Center = center;
         private double Radius = radius;
+        private IMaterial material = material;
 
         public bool Hit(in Ray ray, ref HitRecord rec, Interval tRange)
         {
@@ -40,6 +41,7 @@
 
             Vec3 outwardNormal = (rec.Point - Center) / Radius;
             rec.SetFaceNormal(ray, outwardNormal);
+            rec.Material = material;
 
             return true;
         }

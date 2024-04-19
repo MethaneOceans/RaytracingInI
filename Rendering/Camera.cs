@@ -6,6 +6,7 @@
 
 	using SixLabors.ImageSharp;
 	using SixLabors.ImageSharp.PixelFormats;
+	using Raytracing.Rendering.Hittables;
 
 	internal class Camera
 	{
@@ -15,7 +16,6 @@
 		public int Height;
 		public int SamplesPPixel;
 		public int MaxDepth;
-		public double Gamma;
 
 		private Vec3 center;
 		private Vec3 pixel00Location;
@@ -23,34 +23,63 @@
 		private Vec3 pixelDeltaV;
 		private double pixelSampleScale;
 
+		// Only used for threads
+		Mutex imageMutex = new Mutex();
+		Image<Rgba32> protectedImage;
+		int pixelsDone = 0;
 
-		public void Render(in IHittable world)
+		public void ThreadedRender(in IHittable world)
 		{
 			Initialize();
 
-			Image<Rgba32> image = new (Width, Height);
+			protectedImage = new(Width, Height);
 
 			for (int y = 0; y < Height; y++)
 			{
 				for (int x = 0; x < Width; x++)
 				{
-					ConsoleManager.WriteProgress(y, Height);
+					Ray ray = GetRay(x, y);
 
-					Vec3 sample = new();
-					// Pixel center
-					for (int i = 0; i < SamplesPPixel; i++)
+					HittableList list = (HittableList)world;
+
+					int x1 = x;
+					int y1 = y;
+
+					void callback(object? _)
 					{
-						Ray ray = GetRay(x, y);
-						sample += RayColor(ray, world, MaxDepth);
+						ThreadRayColor(list, x1, y1);
 					}
-					sample *= pixelSampleScale;
-					sample = LinearToGamma(sample);
-					image[x, y] = sample;
+					ThreadPool.QueueUserWorkItem(callback);
 				}
 			}
 
+			while (pixelsDone < Width * Height)
+			{
+				Thread.Yield();
+			}
+
 			int timestamp = (int)(DateTime.Now - DateTime.UnixEpoch).TotalSeconds;
-			image.SaveAsBmp($"Output\\Trace-{timestamp}.bmp");
+			protectedImage.SaveAsPng($"Output\\Trace-{timestamp}.png");
+		}
+		private void ThreadRayColor(in HittableList world, int x, int y)
+		{
+			Vec3 sample = new();
+			// Pixel center
+			for (int i = 0; i < SamplesPPixel; i++)
+			{
+				Ray ray = GetRay(x, y);
+				sample += RayColor(ray, world, MaxDepth);
+			}
+			sample *= pixelSampleScale;
+			sample = LinearToGamma(sample);
+
+			if (imageMutex.WaitOne(1000))
+			{
+				protectedImage[x, y] = sample;
+				pixelsDone++;
+				ConsoleManager.WriteProgress(pixelsDone + 1, Width * Height);
+				imageMutex.ReleaseMutex();
+			}
 		}
 
 		private void Initialize()
@@ -76,28 +105,59 @@
 			Vec3 viewportUpperLeft = center - new Vec3(0, 0, focalLength) - viewportU / 2 - viewportV / 2;
 			pixel00Location = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
 		}
+		public void Render(in IHittable world)
+		{
+			Initialize();
 
+			Image<Rgba32> image = new(Width, Height);
+
+			protectedImage = new(Width, Height);
+
+			for (int y = 0; y < Height; y++)
+			{
+				for (int x = 0; x < Width; x++)
+				{
+					ConsoleManager.WriteProgress(y + 1, Height);
+
+					Vec3 sample = new();
+					// Pixel center
+					for (int i = 0; i < SamplesPPixel; i++)
+					{
+						Ray ray = GetRay(x, y);
+						sample += RayColor(ray, world, MaxDepth);
+					}
+					sample *= pixelSampleScale;
+					sample = LinearToGamma(sample);
+					image[x, y] = sample;
+				}
+			}
+
+			int timestamp = (int)(DateTime.Now - DateTime.UnixEpoch).TotalSeconds;
+			image.SaveAsPng($"Output\\Trace-{timestamp}.png");
+		}
 		private Vec3 RayColor(in Ray ray, in IHittable world, int depth)
 		{
 			if (depth <= 0) return new Vec3();
 
-			Vec3 unitDirection = ray.Direction.Unit();
-
 			HitRecord rec = new();
 			if (world.Hit(ray, ref rec, new Interval(0.001, double.PositiveInfinity)))
 			{
-				Vec3 direction = rec.Normal + Vec3.RandomUnit();
-				return Gamma * RayColor(new Ray(rec.Point, direction), world, depth - 1);
+				Ray scattered;
+				Vec3 attentuation = new();
+				if (rec.Material.Scatter(ray, rec, ref attentuation, out scattered))
+				{
+					return attentuation * RayColor(scattered, world, depth - 1);
+				}
+				Vec3 direction = Vec3.RandomUnit();
+				return new Vec3();
 			}
 
 			// Lerp value based on ray direction y component
-			double a = 0.5 * (unitDirection.Y + 1.0);
+			Vec3 unitDirection = ray.Direction.Unit();
+			double a = 0.7 * (unitDirection.Y + 1.0);
 
 			// Lerp color
-			// TODO: Change back sky gradient
-			//Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.5, 0.7, 1.0);
-			Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.4, 0.0, 0.4);
-
+			Vec3 colorVec = (1.0 - a) * new Vec3(1, 1, 1) + a * new Vec3(0.5, 0.7, 1.0);
 			return colorVec;
 		}
 		private Ray GetRay(int i, int j)

@@ -8,6 +8,7 @@ namespace Raytracing.Rendering
         public Vec3 Normal = normal;
         public double t = t;
         public bool FrontFace;
+        public IMaterial Material;
 
         public HitRecord() : this(new Vec3(), new Vec3(), 0) { }
 
