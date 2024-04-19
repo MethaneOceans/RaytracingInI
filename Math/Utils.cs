@@ -8,6 +8,15 @@ namespace Raytracing.Math
 {
 	internal static class Utils
 	{
+		private static Random random = new Random();
+		public static double RandomDouble()
+		{
+			return random.NextDouble();
+		}
+		public static double RandomDouble(double min, double max)
+		{
+			return min + (max - min) * random.NextDouble();
+		}
 		public static double DegToRad(double degrees)
 		{
 			return degrees * double.Pi / 180;

@@ -5,7 +5,11 @@ namespace Raytracing.Rendering.Hittables
 {
     internal class HittableList : IHittable
     {
-        public List<IHittable> Hittables = [];
+        private List<IHittable> Hittables = [];
+        public void Add(IHittable hittable)
+        {
+            Hittables.Add(hittable);
+        }
 
         public bool Hit(in Ray ray, ref HitRecord hitRec, Interval tRange)
         {

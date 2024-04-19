@@ -27,5 +27,17 @@ namespace Raytracing
 			// Restore cursor position
 			Console.SetCursorPosition(oldCursorX, oldCursorY);
 		}
+		public static void WritePercent(double done, double total, int consolePosition)
+		{
+			const int barLength = 40;
+
+			Console.SetCursorPosition(0, consolePosition);
+
+			double fraction = done / total;
+			int progress = (int)(fraction * barLength);
+
+			string progressBar = new StringBuilder(progress).Insert(0, "#", progress).Insert(progress, "_", barLength - progress).ToString();
+			Console.WriteLine("Progress {0:F}% [{1}]", fraction * 100, progressBar);
+		}
 	}
 }

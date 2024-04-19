@@ -3,8 +3,7 @@
     using static System.Math;
     using SixLabors.ImageSharp.PixelFormats;
     using System.Numerics;
-	using SixLabors.ImageSharp;
-
+    using static Math.Utils;
 	internal struct Vec3(double x, double y, double z)
     {
         static readonly Random random = new();
@@ -63,10 +62,8 @@
             );
         }
 
-        public override readonly string ToString()
-        {
-            return $"Vec3: (X:{X}; Y:{Y}; Z:{Z})";
-        }
+        
+
         /// <summary>
         /// Create a unit length copy of the vector instance
         /// </summary>
@@ -83,26 +80,22 @@
         {
             return new Rgba32(v);
         }
-        public static Vec3 Reflect(in Vec3 vector, in Vec3 normal)
-        {
-            return vector - 2 * Dot(vector, normal) * normal;
-        }
-
+        
         /// <summary>
         /// Generate a vector with components randomized in the range of [0,1)
         /// </summary>
-        public static Vec3 Random()
+        public static Vec3 RandomVec3()
         {
             return new Vec3(random.NextDouble(), random.NextDouble(), random.NextDouble());
         }
         /// <summary>
         /// Generate a vector with components randomized in the range of [min,max)
         /// </summary>
-        public static Vec3 Random(double min, double max)
+        public static Vec3 RandomVec3(double min, double max)
         {
-            double x = min + (max - min) * random.NextDouble();
-            double y = min + (max - min) * random.NextDouble();
-            double z = min + (max - min) * random.NextDouble();
+            double x = RandomDouble(min, max);
+            double y = RandomDouble(min, max);
+            double z = RandomDouble(min, max);
             return new Vec3(x, y, z);
         }
         /// <summary>
@@ -112,7 +105,7 @@
         {
             while (true)
             {
-                Vec3 v = Random(-1, 1);
+                Vec3 v = RandomVec3(-1, 1);
                 if (v.LengthSquared() < 1) return v;   
             }
         }
@@ -133,12 +126,23 @@
             if (Dot(onUnitSphere, normal) > 0) return onUnitSphere;
             else return -onUnitSphere;
         }
-
-        public bool NearZero()
+        public static Vec3 RandomInDisk()
         {
-            double s = 1e-8;
-            return Abs(X) < s && Abs(Y) < s && Abs(Z) < s;
+            while (true)
+            {
+                Vec3 p = new Vec3(RandomDouble(-1, 1), RandomDouble(-1, 1), 0);
+                if (p.LengthSquared() < 1) return p;
+			}
         }
+
+
+        /// <summary>
+        /// Refract a ray into the geometry given a normal and the refraction index
+        /// </summary>
+        /// <param name="uv">The vector that is refracted (Value won't be changed)</param>
+        /// <param name="n">Geometry normal, determines the angle of incidence</param>
+        /// <param name="etaiOverEtat">Refraction index</param>
+        /// <returns>Resulting vector after refraction</returns>
         public static Vec3 Refract(in Vec3 uv, in Vec3 n, double etaiOverEtat)
         {
             double cosTheta = Min(Dot(-uv, n), 1.0);
@@ -146,5 +150,30 @@
             Vec3 rOutParallel = -Sqrt(Abs(1.0 - rOutPerp.LengthSquared())) * n;
             return rOutPerp + rOutParallel;
         }
-    }
+        /// <summary>
+        /// Reflect a vector along the given normal
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <param name="normal"></param>
+        /// <returns></returns>
+		public static Vec3 Reflect(in Vec3 vector, in Vec3 normal)
+		{
+			return vector - 2 * Dot(vector, normal) * normal;
+		}
+
+		/// <summary>
+		/// Checks if the vectors has a near zero magnitude (componentwise since length calculation takes long)
+		/// </summary>
+		/// <returns></returns>
+		public bool NearZero()
+		{
+			double s = 1e-8;
+			return Abs(X) < s && Abs(Y) < s && Abs(Z) < s;
+		}
+
+		public override readonly string ToString()
+		{
+			return $"Vec3: (X:{X}; Y:{Y}; Z:{Z})";
+		}
+	}
 }
