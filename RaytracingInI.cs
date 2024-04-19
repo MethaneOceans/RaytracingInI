@@ -1,8 +1,8 @@
 ﻿namespace Raytracing
 {
-    using Raytracing.Math;
-    using Raytracing.Rendering;
-    using Raytracing.Rendering.Hittables;
+	using Raytracing.Math;
+	using Raytracing.Rendering;
+	using Raytracing.Rendering.Hittables;
 	using Raytracing.Rendering.Materials;
 
 	// Raytracing in imaginary time. Because I never finish it
@@ -17,14 +17,19 @@
 
 			IMaterial groundMat = new Lambertian(new Vec3(0.8, 0.8, 0.0));
 			IMaterial centerMat = new Lambertian(new Vec3(0.1, 0.2, 0.5));
+
 			IMaterial leftMat = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);
 			IMaterial rightMat = new Metal(new Vec3(0.8, 0.6, 0.2), 0.1);
-			IMaterial glassMat = new Dielectric(1.5);
 
-			world.Hittables.Add(new Sphere(new Vec3( 0.0, -100.5, -1.0), 100.0, groundMat)); // Ground
-			world.Hittables.Add(new Sphere(new Vec3( 0.0,    0.0, -1.2),   0.5, glassMat)); // Center
-			world.Hittables.Add(new Sphere(new Vec3(-1.0,    0.0, -1.0),   0.5, leftMat)); // Left
-			world.Hittables.Add(new Sphere(new Vec3( 1.0,    0.0, -1.0),   0.5, rightMat)); // Right
+			IMaterial bubbleMat = new Dielectric(1.00 / 1.50);
+			IMaterial glassMat = new Dielectric(1.50);
+
+
+			world.Hittables.Add( new Sphere (new Vec3 ( 0.0, -100.5, -1.0), 100.0, groundMat)); // Ground
+			world.Hittables.Add( new Sphere (new Vec3 ( 0.0,    0.0, -1.2),   0.5, centerMat)); // Center
+			world.Hittables.Add( new Sphere (new Vec3 (-1.0,    0.0, -1.0),   0.5, glassMat)); // Left
+			world.Hittables.Add( new Sphere (new Vec3 (-1.0,    0.0, -1.0),   0.4, bubbleMat)); // Left
+			world.Hittables.Add( new Sphere (new Vec3 ( 1.0,    0.0, -1.0),   0.5, rightMat)); // Right
 
 			Camera cam = new()
 			{

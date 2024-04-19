@@ -83,7 +83,7 @@
         {
             return new Rgba32(v);
         }
-        public static Vec3 Reflect(ref Vec3 vector, in Vec3 normal)
+        public static Vec3 Reflect(in Vec3 vector, in Vec3 normal)
         {
             return vector - 2 * Dot(vector, normal) * normal;
         }

@@ -8,7 +8,7 @@ namespace Raytracing
 {
 	internal static class ConsoleManager
 	{
-		public static void WriteProgress(int currentLine, int totalLines)
+		public static void WriteProgress(int currentLine, int totalLines, string progressItem)
 		{
 			const int barLength = 30;
 
@@ -22,7 +22,7 @@ namespace Raytracing
 
 			string progressBar = new StringBuilder(progress).Insert(0, "#", progress).Insert(progress, "_", barLength - progress).ToString();
 
-			Console.WriteLine("Progress {0}/{1} scanlines [{2}]", currentLine, totalLines, progressBar);
+			Console.WriteLine("Progress {0}/{1} {3} [{2}]", currentLine, totalLines, progressBar, progressItem);
 
 			// Restore cursor position
 			Console.SetCursorPosition(oldCursorX, oldCursorY);

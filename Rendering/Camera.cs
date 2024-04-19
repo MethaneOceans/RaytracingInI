@@ -3,6 +3,7 @@
 	using static System.Math;
 
 	using Math;
+	using static Raytracing.Math.Utils;
 
 	using SixLabors.ImageSharp;
 	using SixLabors.ImageSharp.PixelFormats;
@@ -12,10 +13,12 @@
 	{
 		private readonly Random random = new();
 
-		public int Width;
-		public int Height;
-		public int SamplesPPixel;
-		public int MaxDepth;
+		public int Width;			// Image width
+		public int Height;			// Image height
+		public int SamplesPPixel;	// Sample rays per pixel
+		public int MaxDepth;		// Maximum ray bounces
+
+		public double vFOV = 90;
 
 		private Vec3 center;
 		private Vec3 pixel00Location;
@@ -25,8 +28,35 @@
 
 		// Only used for threads
 		Mutex imageMutex = new Mutex();
-		Image<Rgba32> protectedImage;
+		Image<Rgba32>? protectedImage;
 		int pixelsDone = 0;
+
+		private void Initialize()
+		{
+			center = new();
+			pixelSampleScale = 1.0 / SamplesPPixel;
+
+			// Set viewport dimensions;
+			double focalLength = 1.0;
+			double theta = DegToRad(vFOV);
+			double h = Tan(theta / 2);
+
+			double aspectRatio = Width / (float)Height;
+			double viewportHeight = 2 * h * focalLength;
+			double viewportWidth = viewportHeight * aspectRatio;
+
+			// Calculate the vectors across the horizontal and vertical viewport edges
+			Vec3 viewportU = new(viewportWidth, 0, 0);
+			Vec3 viewportV = new(0, -viewportHeight, 0);
+
+			// Calculate horizontal and vertical delta vectors from pixel to pixel.
+			pixelDeltaU = viewportU / Width;
+			pixelDeltaV = viewportV / Height;
+
+			// Calculate position of upper left pixel.
+			Vec3 viewportUpperLeft = center - new Vec3(0, 0, focalLength) - viewportU / 2 - viewportV / 2;
+			pixel00Location = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
+		}
 
 		public void ThreadedRender(in IHittable world)
 		{
@@ -75,36 +105,13 @@
 
 			if (imageMutex.WaitOne(1000))
 			{
-				protectedImage[x, y] = sample;
+				protectedImage![x, y] = sample;
 				pixelsDone++;
-				ConsoleManager.WriteProgress(pixelsDone + 1, Width * Height);
+				ConsoleManager.WriteProgress(pixelsDone + 1, Width * Height, "pixels");
 				imageMutex.ReleaseMutex();
 			}
 		}
 
-		private void Initialize()
-		{
-			center = new();
-			pixelSampleScale = 1.0 / SamplesPPixel;
-
-			// Set viewport dimensions;
-			double aspectRatio = Width / (float)Height;
-			double focalLength = 1.0;
-			double viewportHeight = 2.0;
-			double viewportWidth = viewportHeight * aspectRatio;
-
-			// Calculate the vectors across the horizontal and vertical viewport edges
-			Vec3 viewportU = new(viewportWidth, 0, 0);
-			Vec3 viewportV = new(0, -viewportHeight, 0);
-
-			// Calculate horizontal and vertical delta vectors from pixel to pixel.
-			pixelDeltaU = viewportU / Width;
-			pixelDeltaV = viewportV / Height;
-
-			// Calculate position of upper left pixel.
-			Vec3 viewportUpperLeft = center - new Vec3(0, 0, focalLength) - viewportU / 2 - viewportV / 2;
-			pixel00Location = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
-		}
 		public void Render(in IHittable world)
 		{
 			Initialize();
@@ -117,7 +124,7 @@
 			{
 				for (int x = 0; x < Width; x++)
 				{
-					ConsoleManager.WriteProgress(y + 1, Height);
+					ConsoleManager.WriteProgress(y + 1, Height, "lines");
 
 					Vec3 sample = new();
 					// Pixel center
